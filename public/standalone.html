@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎧 英语听力生成器 - English Listening TTS</title>
+    <style>
+        :root {
+            --primary: #4f46e5; --primary-hover: #4338ca; --success: #059669;
+            --warning: #d97706; --bg: #f8fafc; --card-bg: #ffffff;
+            --border: #e2e8f0; --text: #1e293b; --text-secondary: #64748b;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1); --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --radius: 12px;
+            --speaker-a: #4f46e5; --speaker-a-bg: #eef2ff; --speaker-a-border: #c7d2fe;
+            --speaker-b: #059669; --speaker-b-bg: #ecfdf5; --speaker-b-border: #a7f3d0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 50%, #ecfdf5 100%);
+            min-height: 100vh; color: var(--text); line-height: 1.6;
+        }
+        .container { max-width: 960px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 30px 20px 10px; }
+        header h1 {
+            font-size: 2rem; font-weight: 800;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; margin-bottom: 6px;
+        }
+        header p { color: var(--text-secondary); font-size: 0.95rem; }
+
+        .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; margin-bottom: 16px; border: 1px solid var(--border); }
+        .form-group { margin-bottom: 20px; }
+        .form-group:last-child { margin-bottom: 0; }
+        label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem; }
+        label .hint { font-weight: 400; color: var(--text-secondary); font-size: 0.8rem; }
+
+        textarea {
+            width: 100%; min-height: 140px; padding: 14px; border: 2px solid var(--border);
+            border-radius: var(--radius); font-size: 1rem; font-family: 'Georgia', 'Times New Roman', serif;
+            resize: vertical; transition: border-color 0.2s; line-height: 1.7;
+        }
+        textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgb(79 70 229 / 0.1); }
+
+        /* ====== Mode Toggle ====== */
+        .mode-tabs { display: flex; gap: 0; margin-bottom: 20px; border-radius: var(--radius); overflow: hidden; border: 2px solid var(--border); }
+        .mode-tab {
+            flex: 1; padding: 10px 20px; text-align: center; cursor: pointer;
+            font-weight: 600; font-size: 0.9rem; transition: all 0.2s;
+            background: var(--card-bg); border: none; color: var(--text-secondary);
+        }
+        .mode-tab:first-child { border-right: 1px solid var(--border); }
+        .mode-tab:last-child { border-left: 1px solid var(--border); }
+        .mode-tab.active { background: var(--primary); color: white; }
+        .mode-tab:hover:not(.active) { background: #f1f5f9; }
+
+        /* ====== Voice Selectors ====== */
+        .voice-dual { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 600px) { .voice-dual { grid-template-columns: 1fr; } }
+        .voice-card {
+            padding: 16px; border-radius: var(--radius); border: 2px solid var(--border);
+            transition: border-color 0.2s;
+        }
+        .voice-card.speaker-a { border-color: var(--speaker-a-border); background: var(--speaker-a-bg); }
+        .voice-card.speaker-b { border-color: var(--speaker-b-border); background: var(--speaker-b-bg); }
+        .voice-card .speaker-label {
+            font-weight: 700; font-size: 0.85rem; margin-bottom: 8px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .voice-card .speaker-dot {
+            width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+        }
+        .speaker-a .speaker-dot { background: var(--speaker-a); }
+        .speaker-b .speaker-dot { background: var(--speaker-b); }
+        .voice-card select {
+            width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+            border-radius: 6px; font-size: 0.85rem; background: white;
+        }
+
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+
+        .speed-display { display: flex; align-items: center; gap: 10px; }
+        .speed-value {
+            background: var(--primary); color: white; padding: 4px 12px;
+            border-radius: 20px; font-size: 0.85rem; font-weight: 600; min-width: 55px; text-align: center;
+        }
+        .speed-label { font-size: 0.8rem; color: var(--text-secondary); min-width: 40px; }
+        input[type="range"] { padding: 0; border: none; flex: 1; accent-color: var(--primary); cursor: pointer; }
+
+        .btn-group { display: flex; gap: 12px; flex-wrap: wrap; }
+        button {
+            padding: 12px 24px; border: none; border-radius: 8px;
+            font-size: 0.95rem; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+        }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+        .btn-danger { background: #dc2626; color: white; }
+        .btn-outline { background: transparent; color: var(--primary); border: 2px solid var(--primary); }
+        .btn-outline:hover:not(:disabled) { background: var(--primary); color: white; }
+        .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+
+        .status { display: none; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; margin-top: 12px; font-size: 0.9rem; }
+        .status.active { display: flex; }
+        .status.loading { background: #fef3c7; color: #92400e; }
+        .status.success { background: #d1fae5; color: #065f46; }
+        .status.error { background: #fee2e2; color: #991b1b; }
+        .status.info { background: #dbeafe; color: #1e40af; }
+
+        .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .template-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .template-tag { padding: 6px 14px; border: 1px solid var(--border); border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; background: var(--card-bg); white-space: nowrap; }
+        .template-tag:hover { border-color: var(--primary); color: var(--primary); background: #eef2ff; }
+
+        /* ====== Dialogue Preview ====== */
+        #dialoguePreview { display: none; margin-top: 16px; }
+        #dialoguePreview.active { display: block; }
+        .dialogue-line {
+            display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+            margin: 4px 0; border-radius: 8px; cursor: pointer; transition: all 0.15s;
+            border: 1px solid transparent;
+        }
+        .dialogue-line.speaker-a { background: var(--speaker-a-bg); border-color: var(--speaker-a-border); }
+        .dialogue-line.speaker-b { background: var(--speaker-b-bg); border-color: var(--speaker-b-border); }
+        .dialogue-line.speaking { box-shadow: 0 0 0 2px var(--primary); transform: scale(1.01); }
+        .dialogue-speaker-tag {
+            font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 12px;
+            white-space: nowrap; min-width: 48px; text-align: center;
+        }
+        .speaker-a .dialogue-speaker-tag { background: var(--speaker-a); color: white; }
+        .speaker-b .dialogue-speaker-tag { background: var(--speaker-b); color: white; }
+        .dialogue-speaker-tag.editable { cursor: pointer; }
+        .dialogue-text { flex: 1; font-size: 0.9rem; font-family: 'Georgia', serif; }
+        .dialogue-voice { font-size: 0.7rem; color: var(--text-secondary); white-space: nowrap; }
+        .dialogue-btn { opacity: 0; transition: opacity 0.15s; }
+        .dialogue-line:hover .dialogue-btn { opacity: 1; }
+
+        .dialogue-summary {
+            display: flex; gap: 16px; font-size: 0.8rem; color: var(--text-secondary);
+            padding: 8px 0; margin-bottom: 4px;
+        }
+        .dialogue-summary span { display: flex; align-items: center; gap: 4px; }
+        .dialogue-summary .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+        /* ====== Format Help ====== */
+        .format-help {
+            font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;
+            display: flex; gap: 12px; flex-wrap: wrap;
+        }
+        .format-help code {
+            background: #f1f5f9; padding: 1px 6px; border-radius: 4px;
+            font-size: 0.75rem; border: 1px solid var(--border);
+        }
+
+        .feature-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+        .feature-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-secondary); }
+        footer { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎧 英语听力音频生成器</h1>
+            <p>支持单人朗读 · 双人对话 · 多角色扮演 —— 中国英语听力考试标准音色</p>
+        </header>
+
+        <!-- Mode Selection -->
+        <div class="card">
+            <div class="mode-tabs">
+                <button class="mode-tab active" onclick="setMode('single')" id="tabSingle">🎙️ 单人朗读</button>
+                <button class="mode-tab" onclick="setMode('dialogue')" id="tabDialogue">💬 双人对话</button>
+            </div>
+
+            <!-- ====== SINGLE MODE ====== -->
+            <div id="singleMode">
+                <div class="form-group">
+                    <label>📝 输入英语文本 <span class="hint">（每行一句，自动添加停顿）</span></label>
+                    <textarea id="singleText" placeholder="在这里输入英语文本...&#10;&#10;例如：&#10;Hello, my name is Tom. I am a student.&#10;Today we are going to learn about animals."></textarea>
+                    <div class="template-tags" id="singleTemplates"></div>
+                </div>
+                <div class="row">
+                    <div class="form-group">
+                        <label>🔊 发音人</label>
+                        <select id="singleVoice"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>⚡ 朗读速度</label>
+                        <div class="speed-display">
+                            <span class="speed-label">0.5x</span>
+                            <input type="range" id="singleSpeed" min="0.5" max="1.5" value="0.9" step="0.05">
+                            <span class="speed-label">1.5x</span>
+                            <span class="speed-value" id="singleSpeedVal">0.9x</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ====== DIALOGUE MODE ====== -->
+            <div id="dialogueMode" style="display:none;">
+                <div class="form-group">
+                    <label>
+                        💬 输入对话文本
+                        <span class="hint">（用 <code>A:</code> <code>B:</code> 或 <code>Man:</code> <code>Woman:</code> 标记说话人）</span>
+                    </label>
+                    <textarea id="dialogueText" placeholder="对话格式示例：&#10;Man: Hello, how are you today?&#10;Woman: I'm fine, thank you. And you?&#10;Man: I'm great! What are you doing?&#10;Woman: I'm reading a book about animals.&#10;Man: That sounds interesting!&#10;Woman: Yes, I love animals very much.&#10;&#10;或者用简单格式（自动交替）：&#10;Hello, how are you today?&#10;I'm fine, thank you. And you?&#10;I'm great! What are you doing?&#10;I'm reading a book."></textarea>
+                    <div class="template-tags" id="dialogueTemplates"></div>
+                    <div class="format-help">
+                        <span>💡 支持格式：</span>
+                        <code>A: xxx</code> <code>B: xxx</code>
+                        <code>Man: xxx</code> <code>Woman: xxx</code>
+                        <code>Tom: xxx</code> <code>Teacher: xxx</code>
+                        <span>或无标记自动交替</span>
+                    </div>
+                </div>
+
+                <!-- Dual Voice Selectors -->
+                <div class="voice-dual">
+                    <div class="voice-card speaker-a">
+                        <div class="speaker-label">
+                            <span class="speaker-dot"></span> 说话人 A <span style="font-weight:400;font-size:0.75rem">（女声）</span>
+                        </div>
+                        <select id="voiceA"></select>
+                    </div>
+                    <div class="voice-card speaker-b">
+                        <div class="speaker-label">
+                            <span class="speaker-dot"></span> 说话人 B <span style="font-weight:400;font-size:0.75rem">（男声）</span>
+                        </div>
+                        <select id="voiceB"></select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top:16px;margin-bottom:0;">
+                    <label>⚡ 朗读速度</label>
+                    <div class="speed-display">
+                        <span class="speed-label">0.5x</span>
+                        <input type="range" id="dialogueSpeed" min="0.5" max="1.5" value="0.9" step="0.05">
+                        <span class="speed-label">1.5x</span>
+                        <span class="speed-value" id="dialogueSpeedVal">0.9x</span>
+                    </div>
+                </div>
+
+                <!-- Dialogue Preview -->
+                <div id="dialoguePreview">
+                    <div class="dialogue-summary">
+                        <span><span class="dot" style="background:var(--speaker-a)"></span> 说话人A: <strong id="speakerAName">Woman</strong></span>
+                        <span><span class="dot" style="background:var(--speaker-b)"></span> 说话人B: <strong id="speakerBName">Man</strong></span>
+                        <span>共 <strong id="dialogueLineCount">0</strong> 句</span>
+                    </div>
+                    <div id="dialogueLines"></div>
+                </div>
+            </div>
+
+            <!-- ====== Common Buttons ====== -->
+            <div class="btn-group" style="margin-top:16px;">
+                <button class="btn-primary" id="speakBtn" onclick="startSpeaking()">🎤 开始朗读</button>
+                <button class="btn-danger btn-sm" id="stopBtn" onclick="stopSpeaking()" disabled>⏹ 停止</button>
+                <button class="btn-outline btn-sm" id="pauseBtn" onclick="togglePause()" disabled>⏯ 暂停</button>
+            </div>
+
+            <div class="status" id="status"></div>
+        </div>
+
+        <!-- Feature Card -->
+        <div class="card">
+            <h3 style="margin-bottom:12px">✨ 功能特色</h3>
+            <div class="feature-list">
+                <div class="feature-item">🎙️ <span>微软神经网络语音</span></div>
+                <div class="feature-item">👫 <span>双人对话模式</span></div>
+                <div class="feature-item">⚡ <span>语速可调</span></div>
+                <div class="feature-item">📝 <span>自动解析对话</span></div>
+                <div class="feature-item">🆓 <span>完全免费</span></div>
+                <div class="feature-item">🌐 <span>无需安装</span></div>
+            </div>
+        </div>
+
+        <footer>
+            专为中国英语听力教学优化 · 推荐 Chrome / Edge 浏览器 · 空格键暂停 · Esc 停止
+        </footer>
+    </div>
+
+    <script>
+        // ==================== Global State ====================
+        const synth = window.speechSynthesis;
+        let allVoices = [];
+        let currentMode = 'single';
+        let currentUtterance = null;
+        let isPaused = false;
+        let isSpeaking = false;
+
+        // Dialogue state
+        let dialogueParsed = []; // [{speaker: 'A'|'B', text: '...', label: 'Man'}]
+
+        // ==================== Mode Switching ====================
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('tabSingle').classList.toggle('active', mode === 'single');
+            document.getElementById('tabDialogue').classList.toggle('active', mode === 'dialogue');
+            document.getElementById('singleMode').style.display = mode === 'single' ? 'block' : 'none';
+            document.getElementById('dialogueMode').style.display = mode === 'dialogue' ? 'block' : 'none';
+            if (mode === 'dialogue') parseDialogue();
+        }
+
+        // ==================== Voice Loading ====================
+        function loadAllVoices() {
+            allVoices = synth.getVoices().filter(v => v.lang.startsWith('en-'));
+            if (allVoices.length === 0) { setTimeout(loadAllVoices, 200); return; }
+
+            // Sort: recommended voices first
+            const rec = ['Aria', 'Guy', 'Sonia', 'Jenny', 'Davis', 'Nancy', 'Tony', 'Jane', 'Ryan', 'Natasha'];
+            allVoices.sort((a, b) => {
+                const ai = rec.findIndex(r => a.name.includes(r));
+                const bi = rec.findIndex(r => b.name.includes(r));
+                if (ai !== -1 && bi !== -1) return ai - bi;
+                if (ai !== -1) return -1; if (bi !== -1) return 1;
+                return a.lang.localeCompare(b.lang);
+            });
+
+            populateVoiceSelects();
+        }
+
+        function makeVoiceOptions(selectedName) {
+            return allVoices.map(v => {
+                const locale = v.lang.includes('GB') ? '英式' : v.lang.includes('AU') ? '澳式' : '美式';
+                const sel = v.name === selectedName ? ' selected' : '';
+                return `<option value="${v.name}"${sel}>${v.name} (${locale})</option>`;
+            }).join('');
+        }
+
+        function populateVoiceSelects() {
+            // Find best default female/male voices using word boundary
+            const femaleVoice = allVoices.find(v => /\bfemale\b/i.test(v.name));
+            const maleVoice = allVoices.find(v => /\bmale\b/i.test(v.name));
+            const defaultA = femaleVoice ? femaleVoice.name : (allVoices[0]?.name || '');
+            const defaultB = maleVoice ? maleVoice.name : (allVoices[1]?.name || allVoices[0]?.name || '');
+
+            document.getElementById('singleVoice').innerHTML = makeVoiceOptions(defaultA);
+            document.getElementById('voiceA').innerHTML = makeVoiceOptions(defaultA);
+            document.getElementById('voiceB').innerHTML = makeVoiceOptions(defaultB);
+        }
+
+        if (synth.getVoices().length === 0) synth.addEventListener('voiceschanged', loadAllVoices);
+        loadAllVoices();
+
+        // ==================== Speed Sliders ====================
+        ['singleSpeed', 'dialogueSpeed'].forEach(id => {
+            const slider = document.getElementById(id);
+            const display = document.getElementById(id === 'singleSpeed' ? 'singleSpeedVal' : 'dialogueSpeedVal');
+            slider.addEventListener('input', () => display.textContent = parseFloat(slider.value).toFixed(2) + 'x');
+        });
+
+        // ==================== Dialogue Parsing ====================
+        function parseDialogue() {
+            if (currentMode !== 'dialogue') return;
+            const text = document.getElementById('dialogueText').value.trim();
+            if (!text) { document.getElementById('dialoguePreview').classList.remove('active'); return; }
+
+            const lines = text.split('\n').filter(l => l.trim());
+            dialogueParsed = [];
+
+            // Detect if lines have speaker labels
+            const labelPattern = /^(\w+)\s*[:：]\s*(.+)/;
+            let hasLabels = false;
+            const detectedSpeakers = new Map(); // label -> first occurrence index
+
+            for (const line of lines) {
+                const match = line.match(labelPattern);
+                if (match) {
+                    hasLabels = true;
+                    const label = match[1].trim();
+                    const content = match[2].trim();
+                    if (!detectedSpeakers.has(label)) {
+                        detectedSpeakers.set(label, detectedSpeakers.size < 2 ? (detectedSpeakers.size === 0 ? 'A' : 'B') : 'B');
+                    }
+                    dialogueParsed.push({ speaker: detectedSpeakers.get(label), text: content, label: label });
+                } else {
+                    dialogueParsed.push({ speaker: null, text: line.trim(), label: null });
+                }
+            }
+
+            // If no labels, assign alternating speakers
+            if (!hasLabels) {
+                dialogueParsed.forEach((item, i) => {
+                    item.speaker = i % 2 === 0 ? 'A' : 'B';
+                });
+            }
+
+            // Set speaker display names
+            const speakerALabels = dialogueParsed.filter(d => d.speaker === 'A' && d.label).map(d => d.label);
+            const speakerBLabels = dialogueParsed.filter(d => d.speaker === 'B' && d.label).map(d => d.label);
+
+            const nameA = [...new Set(speakerALabels)].join('/') || '说话人A';
+            const nameB = [...new Set(speakerBLabels)].join('/') || '说话人B';
+
+            document.getElementById('speakerAName').textContent = nameA;
+            document.getElementById('speakerBName').textContent = nameB;
+            document.getElementById('dialogueLineCount').textContent = dialogueParsed.length;
+
+            // Render dialogue preview
+            renderDialoguePreview();
+            document.getElementById('dialoguePreview').classList.add('active');
+        }
+
+        function renderDialoguePreview() {
+            const container = document.getElementById('dialogueLines');
+            const voiceAName = document.getElementById('voiceA').value || 'Aria';
+            const voiceBName = document.getElementById('voiceB').value || 'Guy';
+
+            container.innerHTML = dialogueParsed.map((d, i) => {
+                const speakerClass = d.speaker === 'A' ? 'speaker-a' : 'speaker-b';
+                const tag = d.label || (d.speaker === 'A' ? 'A' : 'B');
+                const voiceUsed = d.speaker === 'A' ? voiceAName : voiceBName;
+                return `
+                    <div class="dialogue-line ${speakerClass}" id="dline-${i}" onclick="speakDialogueLine(${i})">
+                        <span class="dialogue-speaker-tag">${tag}</span>
+                        <span class="dialogue-text">${d.text}</span>
+                        <span class="dialogue-voice">🔊 ${voiceUsed}</span>
+                        <button class="btn-outline btn-sm dialogue-btn" onclick="event.stopPropagation();speakDialogueLine(${i})">▶</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Re-parse when text changes
+        document.getElementById('dialogueText').addEventListener('input', parseDialogue);
+        document.getElementById('voiceA').addEventListener('change', () => { parseDialogue(); renderDialoguePreview(); });
+        document.getElementById('voiceB').addEventListener('change', () => { parseDialogue(); renderDialoguePreview(); });
+
+        // ==================== Core Speaking ====================
+        function getCurrentSpeed() {
+            if (currentMode === 'single') return parseFloat(document.getElementById('singleSpeed').value);
+            return parseFloat(document.getElementById('dialogueSpeed').value);
+        }
+
+        function getVoiceByName(name) {
+            return allVoices.find(v => v.name === name) || null;
+        }
+
+        function createUtterance(text, voiceName) {
+            const u = new SpeechSynthesisUtterance(text);
+            const voice = getVoiceByName(voiceName);
+            if (voice) u.voice = voice;
+            u.rate = getCurrentSpeed();
+            u.pitch = 1.0;
+            u.volume = 1.0;
+            return u;
+        }
+
+        function startSpeaking() {
+            synth.cancel();
+            isPaused = false;
+            isSpeaking = true;
+            updateButtons('speaking');
+
+            if (currentMode === 'single') {
+                speakSingleMode();
+            } else {
+                parseDialogue();
+                speakDialogueMode();
+            }
+        }
+
+        // ---- Single Mode ----
+        function speakSingleMode() {
+            const text = document.getElementById('singleText').value.trim();
+            if (!text) { showStatus('请先输入英语文本', 'error'); stopSpeaking(); return; }
+
+            const voiceName = document.getElementById('singleVoice').value;
+            const parts = text.split('\n').filter(l => l.trim());
+
+            if (parts.length <= 1) {
+                // Single utterance
+                currentUtterance = createUtterance(text, voiceName);
+                currentUtterance.onend = () => finishSpeaking('✅ 朗读完成！');
+                currentUtterance.onerror = (e) => {
+                    if (e.error !== 'canceled' && e.error !== 'interrupted') showStatus('朗读出错: ' + e.error, 'error');
+                    finishSpeaking('');
+                };
+                synth.speak(currentUtterance);
+                showStatus('🔊 正在朗读...', 'info');
+            } else {
+                // Multiple parts
+                speakParts(parts, voiceName);
+            }
+        }
+
+        let partIndex = 0;
+        let partList = [];
+        let partVoice = '';
+
+        function speakParts(parts, voiceName) {
+            partList = parts;
+            partVoice = voiceName;
+            partIndex = 0;
+            showStatus('🔊 正在朗读...', 'info');
+            speakNextPart();
+        }
+
+        function speakNextPart() {
+            if (!isSpeaking || partIndex >= partList.length) {
+                finishSpeaking('✅ 朗读完成！');
+                return;
+            }
+            currentUtterance = createUtterance(partList[partIndex], partVoice);
+            currentUtterance.onend = () => {
+                partIndex++;
+                setTimeout(() => speakNextPart(), 350);
+            };
+            currentUtterance.onerror = (e) => {
+                if (e.error !== 'canceled' && e.error !== 'interrupted') showStatus('朗读出错', 'error');
+                finishSpeaking('');
+            };
+            synth.speak(currentUtterance);
+        }
+
+        // ---- Dialogue Mode ----
+        let dialogueIndex = 0;
+
+        function speakDialogueMode() {
+            if (dialogueParsed.length === 0) { showStatus('请输入对话内容', 'error'); stopSpeaking(); return; }
+
+            dialogueIndex = 0;
+            const voiceA = document.getElementById('voiceA').value;
+            const voiceB = document.getElementById('voiceB').value;
+
+            showStatus('💬 正在对话...', 'info');
+            speakNextDialogueLine(voiceA, voiceB);
+        }
+
+        function speakNextDialogueLine(voiceA, voiceB) {
+            if (!isSpeaking || dialogueIndex >= dialogueParsed.length) {
+                // Clear highlights
+                document.querySelectorAll('.dialogue-line.speaking').forEach(el => el.classList.remove('speaking'));
+                finishSpeaking('✅ 对话朗读完成！');
+                return;
+            }
+
+            const item = dialogueParsed[dialogueIndex];
+            const voiceName = item.speaker === 'A' ? voiceA : voiceB;
+
+            // Highlight current line
+            document.querySelectorAll('.dialogue-line.speaking').forEach(el => el.classList.remove('speaking'));
+            const lineEl = document.getElementById('dline-' + dialogueIndex);
+            if (lineEl) {
+                lineEl.classList.add('speaking');
+                lineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            currentUtterance = createUtterance(item.text, voiceName);
+            currentUtterance.onend = () => {
+                dialogueIndex++;
+                // Longer pause between different speakers
+                const nextItem = dialogueParsed[dialogueIndex];
+                const currentSpeaker = item.speaker;
+                const nextSpeaker = nextItem ? nextItem.speaker : null;
+                const pause = (currentSpeaker !== nextSpeaker && nextSpeaker !== null) ? 500 : 300;
+                setTimeout(() => speakNextDialogueLine(voiceA, voiceB), pause);
+            };
+            currentUtterance.onerror = (e) => {
+                if (e.error !== 'canceled' && e.error !== 'interrupted') showStatus('朗读出错', 'error');
+                finishSpeaking('');
+            };
+            synth.speak(currentUtterance);
+        }
+
+        function speakDialogueLine(index) {
+            if (index < 0 || index >= dialogueParsed.length) return;
+            synth.cancel();
+            isSpeaking = true;
+            updateButtons('speaking');
+
+            const item = dialogueParsed[index];
+            const voiceName = item.speaker === 'A' ? document.getElementById('voiceA').value : document.getElementById('voiceB').value;
+
+            document.querySelectorAll('.dialogue-line.speaking').forEach(el => el.classList.remove('speaking'));
+            const lineEl = document.getElementById('dline-' + index);
+            if (lineEl) lineEl.classList.add('speaking');
+
+            currentUtterance = createUtterance(item.text, voiceName);
+            currentUtterance.onend = () => {
+                document.querySelectorAll('.dialogue-line.speaking').forEach(el => el.classList.remove('speaking'));
+                finishSpeaking('✅ 朗读完成');
+            };
+            currentUtterance.onerror = (e) => {
+                if (e.error !== 'canceled' && e.error !== 'interrupted') showStatus('朗读出错', 'error');
+                finishSpeaking('');
+            };
+            synth.speak(currentUtterance);
+            showStatus('🔊 朗读第 ' + (index + 1) + ' 句', 'info');
+        }
+
+        // ---- Common ----
+        function finishSpeaking(msg) {
+            isSpeaking = false;
+            updateButtons('idle');
+            if (msg) showStatus(msg, 'success');
+        }
+
+        function stopSpeaking() {
+            synth.cancel();
+            isSpeaking = false;
+            isPaused = false;
+            currentUtterance = null;
+            document.querySelectorAll('.dialogue-line.speaking').forEach(el => el.classList.remove('speaking'));
+            updateButtons('idle');
+            showStatus('⏹ 已停止', 'info');
+        }
+
+        function togglePause() {
+            if (isPaused) {
+                synth.resume();
+                isPaused = false;
+                document.getElementById('pauseBtn').innerHTML = '⏯ 暂停';
+                showStatus('▶ 继续朗读', 'info');
+            } else {
+                synth.pause();
+                isPaused = true;
+                document.getElementById('pauseBtn').innerHTML = '▶ 继续';
+                showStatus('⏸ 已暂停', 'info');
+            }
+        }
+
+        function updateButtons(state) {
+            const speak = document.getElementById('speakBtn');
+            const stop = document.getElementById('stopBtn');
+            const pause = document.getElementById('pauseBtn');
+            if (state === 'speaking') {
+                speak.disabled = true; stop.disabled = false; pause.disabled = false;
+                pause.innerHTML = '⏯ 暂停';
+            } else {
+                speak.disabled = false; stop.disabled = true; pause.disabled = true;
+                pause.innerHTML = '⏯ 暂停';
+            }
+        }
+
+        function showStatus(msg, type) {
+            const el = document.getElementById('status');
+            el.textContent = msg; el.className = 'status active ' + type;
+            if (type === 'success' || type === 'info') {
+                setTimeout(() => { if (el.textContent === msg) el.classList.remove('active'); }, 4000);
+            }
+        }
+
+        // ==================== Keyboard Shortcuts ====================
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); startSpeaking(); }
+            else if (e.key === 'Escape') { stopSpeaking(); }
+            else if (e.key === ' ' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
+                e.preventDefault(); togglePause();
+            }
+        });
+
+        // ==================== Templates ====================
+        function useTemplate(name) {
+            const templates = {
+                // Single mode templates
+                greeting: [
+                    "Hello! How are you today?",
+                    "I'm fine, thank you. And you?",
+                    "I'm great! What did you do yesterday?",
+                    "I went to the park with my family.",
+                    "That sounds wonderful!",
+                    "Yes, we had a great time."
+                ].join('\n'),
+                classroom: [
+                    "Good morning, class.",
+                    "Good morning, teacher.",
+                    "Please open your books to page twenty.",
+                    "Today we are going to learn about animals.",
+                    "Can anyone tell me what this is?",
+                    "It's an elephant!",
+                    "Very good! Now, please read after me."
+                ].join('\n'),
+                story: [
+                    "Once upon a time, there was a little rabbit.",
+                    "The rabbit lived in a beautiful forest.",
+                    "One day, the rabbit met a clever fox.",
+                    'The fox said, "Let\'s play a game."',
+                    "But the rabbit was very smart.",
+                    'She said, "No, thank you. I need to go home."',
+                    "And the rabbit hopped away safely.",
+                    "The end."
+                ].join('\n'),
+                // Dialogue templates
+                shopping: [
+                    "Woman: Good afternoon. Can I help you?",
+                    "Man: Yes, I'm looking for a pair of shoes.",
+                    "Woman: What size do you wear?",
+                    "Man: I wear size forty-two.",
+                    "Woman: These black ones are very popular.",
+                    "Man: They look nice. How much are they?",
+                    "Woman: They are fifty dollars.",
+                    "Man: OK, I'll take them. Thank you!",
+                    "Woman: You're welcome. Have a nice day!"
+                ].join('\n'),
+                asking: [
+                    "Man: Excuse me, can you tell me how to get to the library?",
+                    "Woman: Of course. Go straight ahead for two blocks.",
+                    "Man: OK, two blocks straight ahead.",
+                    "Woman: Then turn left at the traffic lights.",
+                    "Man: Turn left at the lights. Got it.",
+                    "Woman: You will see a big white building on your right.",
+                    "Man: Is that the library?",
+                    "Woman: Yes, that's it. You can't miss it.",
+                    "Man: Thank you very much!",
+                    "Woman: You're welcome. Have a nice day!"
+                ].join('\n'),
+                interview: [
+                    "Teacher: Good morning! What's your name?",
+                    "Student: My name is Li Hua. Nice to meet you.",
+                    "Teacher: Nice to meet you too. Where are you from?",
+                    "Student: I'm from Beijing, China.",
+                    "Teacher: What's your favorite subject?",
+                    "Student: I like English very much.",
+                    "Teacher: Why do you like English?",
+                    "Student: Because I want to travel around the world.",
+                    "Teacher: That's a great goal! Keep studying hard.",
+                    "Student: Thank you, teacher. I will!"
+                ].join('\n'),
+                restaurant: [
+                    "Waiter: Good evening. A table for two?",
+                    "Customer: Yes, please. Do you have a table by the window?",
+                    "Waiter: Sure, right this way. Here is the menu.",
+                    "Customer: Thank you. What do you recommend?",
+                    "Waiter: The grilled fish is very popular today.",
+                    "Customer: That sounds good. I'll have the fish.",
+                    "Waiter: Excellent choice. And to drink?",
+                    "Customer: Just water, please.",
+                    "Waiter: I'll be right back with your order."
+                ].join('\n')
+            };
+
+            if (currentMode === 'single') {
+                const singleTemps = { greeting: templates.greeting, classroom: templates.classroom, story: templates.story };
+                document.getElementById('singleText').value = singleTemps[name] || templates[name] || '';
+            } else {
+                const dialogueTemps = { shopping: templates.shopping, asking: templates.asking, interview: templates.interview, restaurant: templates.restaurant };
+                document.getElementById('dialogueText').value = dialogueTemps[name] || templates[name] || '';
+                parseDialogue();
+            }
+        }
+
+        function renderTemplateTags() {
+            const singleTags = [
+                ['greeting', '👋 问候对话'], ['classroom', '🏫 课堂用语'], ['story', '📖 小故事']
+            ];
+            const dialogueTags = [
+                ['shopping', '🛒 购物对话'], ['asking', '🗺️ 问路指路'], ['interview', '🎓 师生访谈'], ['restaurant', '🍽️ 餐厅点餐']
+            ];
+
+            document.getElementById('singleTemplates').innerHTML = singleTags
+                .map(([id, label]) => `<span class="template-tag" onclick="useTemplate('${id}')">${label}</span>`).join('');
+
+            document.getElementById('dialogueTemplates').innerHTML = dialogueTags
+                .map(([id, label]) => `<span class="template-tag" onclick="useTemplate('${id}')">${label}</span>`).join('');
+        }
+
+        // ==================== Init ====================
+        window.addEventListener('DOMContentLoaded', () => {
+            renderTemplateTags();
+            // Populate template tags on voice change
+            document.getElementById('voiceA').addEventListener('change', () => {
+                if (currentMode === 'dialogue') renderDialoguePreview();
+            });
+            document.getElementById('voiceB').addEventListener('change', () => {
+                if (currentMode === 'dialogue') renderDialoguePreview();
+            });
+        });
+    </script>
+</body>
+</html>

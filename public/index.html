@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎧 英语听力生成器 - English Listening TTS</title>
+    <style>
+        :root {
+            --primary: #4f46e5; --primary-hover: #4338ca; --success: #059669;
+            --bg: #f8fafc; --card-bg: #ffffff; --border: #e2e8f0;
+            --text: #1e293b; --text-secondary: #64748b;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+            --radius: 12px;
+            --spk-a: #4f46e5; --spk-a-bg: #eef2ff; --spk-a-border: #c7d2fe;
+            --spk-b: #059669; --spk-b-bg: #ecfdf5; --spk-b-border: #a7f3d0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 50%, #ecfdf5 100%);
+            min-height: 100vh; color: var(--text); line-height: 1.6;
+        }
+        .container { max-width: 960px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 30px 20px 10px; }
+        header h1 { font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, #4f46e5, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 6px; }
+        header p { color: var(--text-secondary); font-size: 0.95rem; }
+        .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; margin-bottom: 16px; border: 1px solid var(--border); }
+        .form-group { margin-bottom: 20px; } .form-group:last-child { margin-bottom: 0; }
+        label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem; }
+        label .hint { font-weight: 400; color: var(--text-secondary); font-size: 0.8rem; }
+        textarea { width: 100%; min-height: 140px; padding: 14px; border: 2px solid var(--border); border-radius: var(--radius); font-size: 1rem; font-family: 'Georgia', 'Times New Roman', serif; resize: vertical; transition: border-color 0.2s; line-height: 1.7; }
+        textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgb(79 70 229 / 0.1); }
+        .mode-tabs { display: flex; margin-bottom: 20px; border-radius: var(--radius); overflow: hidden; border: 2px solid var(--border); }
+        .mode-tab { flex: 1; padding: 10px 20px; text-align: center; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; background: var(--card-bg); border: none; color: var(--text-secondary); }
+        .mode-tab:first-child { border-right: 1px solid var(--border); }
+        .mode-tab:last-child { border-left: 1px solid var(--border); }
+        .mode-tab.active { background: var(--primary); color: white; }
+        .mode-tab:hover:not(.active) { background: #f1f5f9; }
+        .voice-dual { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 600px) { .voice-dual { grid-template-columns: 1fr; } }
+        .voice-card { padding: 16px; border-radius: var(--radius); border: 2px solid var(--border); }
+        .voice-card.spk-a { border-color: var(--spk-a-border); background: var(--spk-a-bg); }
+        .voice-card.spk-b { border-color: var(--spk-b-border); background: var(--spk-b-bg); }
+        .voice-card .spk-label { font-weight: 700; font-size: 0.85rem; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .spk-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .spk-a .spk-dot { background: var(--spk-a); } .spk-b .spk-dot { background: var(--spk-b); }
+        .voice-card select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; background: white; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+        .speed-display { display: flex; align-items: center; gap: 10px; }
+        .speed-value { background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; min-width: 55px; text-align: center; }
+        .speed-label { font-size: 0.8rem; color: var(--text-secondary); min-width: 40px; }
+        input[type="range"] { padding: 0; border: none; flex: 1; accent-color: var(--primary); cursor: pointer; }
+        .btn-group { display: flex; gap: 12px; flex-wrap: wrap; }
+        button { padding: 12px 24px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
+        .btn-success { background: var(--success); color: white; } .btn-success:hover:not(:disabled) { background: #047857; }
+        .btn-danger { background: #dc2626; color: white; }
+        .btn-outline { background: transparent; color: var(--primary); border: 2px solid var(--primary); }
+        .btn-outline:hover:not(:disabled) { background: var(--primary); color: white; }
+        .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+        .status { display: none; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 8px; margin-top: 12px; font-size: 0.9rem; }
+        .status.active { display: flex; }
+        .status.loading { background: #fef3c7; color: #92400e; }
+        .status.success { background: #d1fae5; color: #065f46; }
+        .status.error { background: #fee2e2; color: #991b1b; }
+        .status.info { background: #dbeafe; color: #1e40af; }
+        .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .audio-player { display: none; width: 100%; margin-top: 12px; }
+        .audio-player.active { display: block; }
+        .audio-player audio { width: 100%; border-radius: 8px; }
+        .template-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .template-tag { padding: 6px 14px; border: 1px solid var(--border); border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; background: var(--card-bg); white-space: nowrap; }
+        .template-tag:hover { border-color: var(--primary); color: var(--primary); background: #eef2ff; }
+        #dialoguePreview { display: none; margin-top: 16px; }
+        #dialoguePreview.active { display: block; }
+        .dialogue-line { display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin: 4px 0; border-radius: 8px; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; }
+        .dialogue-line.spk-a { background: var(--spk-a-bg); border-color: var(--spk-a-border); }
+        .dialogue-line.spk-b { background: var(--spk-b-bg); border-color: var(--spk-b-border); }
+        .dialogue-line.speaking { box-shadow: 0 0 0 2px var(--primary); transform: scale(1.01); }
+        .dialogue-tag { font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; white-space: nowrap; min-width: 48px; text-align: center; }
+        .spk-a .dialogue-tag { background: var(--spk-a); color: white; }
+        .spk-b .dialogue-tag { background: var(--spk-b); color: white; }
+        .dialogue-text { flex: 1; font-size: 0.9rem; font-family: 'Georgia', serif; }
+        .dialogue-btn { opacity: 0; transition: opacity 0.15s; }
+        .dialogue-line:hover .dialogue-btn { opacity: 1; }
+        .dialogue-summary { display: flex; gap: 16px; font-size: 0.8rem; color: var(--text-secondary); padding: 8px 0; margin-bottom: 4px; }
+        .dialogue-summary span { display: flex; align-items: center; gap: 4px; }
+        .format-help { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; display: flex; gap: 12px; flex-wrap: wrap; }
+        .format-help code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 0.75rem; border: 1px solid var(--border); }
+        .feature-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+        .feature-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-secondary); }
+        footer { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>🎧 英语听力音频生成器</h1>
+        <p>单人朗读 · 双人对话 · 支持 MP3 下载</p>
+    </header>
+
+    <div class="card">
+        <div class="mode-tabs">
+            <button class="mode-tab active" onclick="setMode('single')" id="tabSingle">🎙️ 单人朗读</button>
+            <button class="mode-tab" onclick="setMode('dialogue')" id="tabDialogue">💬 双人对话</button>
+        </div>
+
+        <!-- SINGLE MODE -->
+        <div id="singleMode">
+            <div class="form-group">
+                <label>📝 输入英语文本</label>
+                <textarea id="singleText" placeholder="在这里输入英语文本...&#10;&#10;例如：&#10;Hello, my name is Tom. I am a student.&#10;Today we are going to learn about animals."></textarea>
+                <div class="template-tags" id="singleTemplates"></div>
+            </div>
+            <div class="row">
+                <div class="form-group"><label>🔊 发音人</label><select id="singleVoice"></select></div>
+                <div class="form-group">
+                    <label>⚡ 朗读速度</label>
+                    <div class="speed-display">
+                        <span class="speed-label">慢</span>
+                        <input type="range" id="singleSpeed" min="-50" max="50" value="0" step="5">
+                        <span class="speed-label">快</span>
+                        <span class="speed-value" id="singleSpeedVal">正常</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DIALOGUE MODE -->
+        <div id="dialogueMode" style="display:none;">
+            <div class="form-group">
+                <label>💬 输入对话文本 <span class="hint">（用 <code>Man:</code> <code>Woman:</code> 标记说话人）</span></label>
+                <textarea id="dialogueText" placeholder="对话格式示例：&#10;Man: Hello, how are you today?&#10;Woman: I'm fine, thank you. And you?&#10;Man: I'm great! What are you doing?&#10;Woman: I'm reading a book about animals.&#10;&#10;无标记时自动交替：&#10;Hello, how are you today?&#10;I'm fine, thank you. And you?&#10;What are you doing?&#10;I'm reading a book."></textarea>
+                <div class="template-tags" id="dialogueTemplates"></div>
+                <div class="format-help">
+                    <span>💡 格式：</span><code>A: xxx</code> <code>B: xxx</code> <code>Man: xxx</code> <code>Woman: xxx</code> <code>Teacher: xxx</code> <code>Student: xxx</code>
+                </div>
+            </div>
+            <div class="voice-dual">
+                <div class="voice-card spk-a">
+                    <div class="spk-label"><span class="spk-dot"></span> 说话人 A（女声）</div>
+                    <select id="voiceA"></select>
+                </div>
+                <div class="voice-card spk-b">
+                    <div class="spk-label"><span class="spk-dot"></span> 说话人 B（男声）</div>
+                    <select id="voiceB"></select>
+                </div>
+            </div>
+            <div class="form-group" style="margin-top:16px;margin-bottom:0;">
+                <label>⚡ 朗读速度</label>
+                <div class="speed-display">
+                    <span class="speed-label">慢</span>
+                    <input type="range" id="dialogueSpeed" min="-50" max="50" value="0" step="5">
+                    <span class="speed-label">快</span>
+                    <span class="speed-value" id="dialogueSpeedVal">正常</span>
+                </div>
+            </div>
+            <div id="dialoguePreview">
+                <div class="dialogue-summary">
+                    <span><span class="spk-dot" style="background:var(--spk-a)"></span> <strong id="speakerAName">A</strong></span>
+                    <span><span class="spk-dot" style="background:var(--spk-b)"></span> <strong id="speakerBName">B</strong></span>
+                    <span>共 <strong id="dialogueLineCount">0</strong> 句</span>
+                </div>
+                <div id="dialogueLines"></div>
+            </div>
+        </div>
+
+        <div class="btn-group" style="margin-top:16px;">
+            <button class="btn-primary" id="speakBtn" onclick="startSpeaking()">🎤 开始朗读</button>
+            <button class="btn-danger btn-sm" id="stopBtn" onclick="stopSpeaking()" disabled>⏹ 停止</button>
+            <button class="btn-outline btn-sm" id="pauseBtn" onclick="togglePause()" disabled>⏯ 暂停</button>
+            <button class="btn-success btn-sm" id="downloadBtn" onclick="downloadAudio()">💾 下载 MP3</button>
+        </div>
+
+        <div class="status" id="status"></div>
+        <div class="audio-player" id="audioPlayer"><audio id="audioElement" controls></audio></div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-bottom:12px">✨ 功能特色</h3>
+        <div class="feature-list">
+            <div class="feature-item">🎙️ 微软神经网络语音</div>
+            <div class="feature-item">👫 双人对话模式</div>
+            <div class="feature-item">⚡ 语速可调</div>
+            <div class="feature-item">💾 MP3 下载</div>
+            <div class="feature-item">📝 自动解析对话</div>
+            <div class="feature-item">🆓 完全免费</div>
+        </div>
+    </div>
+    <footer>专为中国英语听力教学优化 · Microsoft Neural TTS · Ctrl+Enter 生成 · 空格暂停 · Esc 停止</footer>
+</div>
+
+<script>
+// ==================== GLOBAL STATE ====================
+const synth = window.speechSynthesis;
+let serverVoices = [];     // [{id: 'en-US-AriaNeural', name: 'Aria (美式女声)', ...}]
+let browserVoices = [];    // [{name: 'Microsoft Aria Online ...', lang: 'en-US', ...}]
+let voicesReady = false;
+let currentMode = 'single';
+let currentUtterance = null;
+let isPaused = false, isSpeaking = false;
+let dialogueParsed = [];
+let lastAudioUrl = null;
+
+// ==================== MODE SWITCHING ====================
+function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('tabSingle').classList.toggle('active', mode === 'single');
+    document.getElementById('tabDialogue').classList.toggle('active', mode === 'dialogue');
+    document.getElementById('singleMode').style.display = mode === 'single' ? 'block' : 'none';
+    document.getElementById('dialogueMode').style.display = mode === 'dialogue' ? 'block' : 'none';
+    document.getElementById('audioPlayer').classList.remove('active');
+    lastAudioUrl = null;
+    if (mode === 'dialogue') parseDialogue();
+}
+// Step 1: Load server voices → build dropdowns (authoritative source for TTS)
+async function loadServerVoices() {
+    try {
+        const res = await fetch('/api/voices');
+        const data = await res.json();
+        serverVoices = data.voices;
+        console.log('✅ Server voices loaded:', serverVoices.length);
+    } catch(e) {
+        console.error('Failed to load server voices:', e);
+        // Hardcoded fallback so dropdown is never empty
+        serverVoices = [
+            {id:'en-US-AriaNeural',name:'Aria (美式女声)',description:'⭐ 推荐 - 清晰温暖',gender:'Female',locale:'en-US'},
+            {id:'en-US-GuyNeural',name:'Guy (美式男声)',description:'⭐ 推荐 - 标准男声',gender:'Male',locale:'en-US'},
+            {id:'en-US-JennyNeural',name:'Jenny (美式女声)',description:'友好自然',gender:'Female',locale:'en-US'},
+            {id:'en-GB-SoniaNeural',name:'Sonia (英式女声)',description:'英式发音',gender:'Female',locale:'en-GB'}
+        ];
+    }
+    buildVoiceDropdowns();
+}
+
+// Step 2: Load browser voices for local playback (does NOT build dropdowns)
+function loadBrowserVoices() {
+    const all = synth.getVoices();
+    browserVoices = all.filter(v => v.lang.startsWith('en-'));
+    if (browserVoices.length === 0) {
+        setTimeout(loadBrowserVoices, 300);
+        return;
+    }
+    console.log('✅ Browser voices loaded:', browserVoices.length);
+    browserVoices.forEach(v => console.log('  -', v.name, '|', v.lang));
+    voicesReady = true;
+}
+
+// Map server voice ID → browser voice for playback
+function findBrowserVoice(serverVoiceId) {
+    if (!serverVoiceId || browserVoices.length === 0) return null;
+
+    const parts = serverVoiceId.split('-');
+    const locale = parts.slice(0, 2).join('-');
+    const voiceKey = parts.slice(2).join('').replace('Neural', '');
+
+    // 1) Exact name match
+    let match = browserVoices.find(v => v.name.includes(voiceKey));
+    if (match) return match;
+    match = browserVoices.find(v => v.name.toLowerCase().includes(voiceKey.toLowerCase()));
+    if (match) return match;
+
+    // 2) Get target gender from server metadata
+    const sv = serverVoices.find(v => v.id === serverVoiceId);
+    const targetGender = sv ? sv.gender.toLowerCase() : null;
+
+    if (targetGender) {
+        // Use word-boundary regex to avoid 'female' matching 'male'
+        const genderRegex = new RegExp('\\b' + targetGender + '\\b', 'i');
+
+        // 3) Same locale + same gender
+        match = browserVoices.find(v => v.lang.startsWith(locale) && genderRegex.test(v.name));
+        if (match) return match;
+
+        // 4) Same gender, any English locale
+        match = browserVoices.find(v => v.lang.startsWith('en-') && genderRegex.test(v.name));
+        if (match) return match;
+    }
+
+    // 5) Same locale fallback
+    match = browserVoices.find(v => v.lang.startsWith(locale));
+    if (match) return match;
+
+    // 6) Any English voice
+    return browserVoices[0] || null;
+}
+
+// Build dropdowns from server voices ONLY
+function buildVoiceDropdowns() {
+    if (serverVoices.length === 0) return;
+
+    const makeOptions = (defaultId) => serverVoices.map(v =>
+        `<option value="${v.id}"${v.id === defaultId ? ' selected' : ''}>${v.name} — ${v.description}</option>`
+    ).join('');
+
+    document.getElementById('singleVoice').innerHTML = makeOptions('en-US-AriaNeural');
+    document.getElementById('voiceA').innerHTML = makeOptions('en-US-AriaNeural');
+    document.getElementById('voiceB').innerHTML = makeOptions('en-US-GuyNeural');
+
+    console.log('✅ Dropdowns built with server voice IDs');
+    if (currentMode === 'dialogue') renderDialoguePreview();
+}
+
+// Init: load server voices first, browser voices in background
+loadServerVoices();
+if (synth.getVoices().length === 0) {
+    synth.addEventListener('voiceschanged', loadBrowserVoices);
+}
+loadBrowserVoices();
+
+// ==================== SPEED SLIDERS ====================
+document.getElementById('singleSpeed').addEventListener('input', function() {
+    const v = parseInt(this.value);
+    document.getElementById('singleSpeedVal').textContent = v === 0 ? '正常' : v > 0 ? `快 +${v}%` : `慢 ${v}%`;
+});
+document.getElementById('dialogueSpeed').addEventListener('input', function() {
+    const v = parseInt(this.value);
+    document.getElementById('dialogueSpeedVal').textContent = v === 0 ? '正常' : v > 0 ? `快 +${v}%` : `慢 ${v}%`;
+});
+
+// ==================== DIALOGUE PARSING ====================
+function parseDialogue() {
+    if (currentMode !== 'dialogue') return;
+    const text = document.getElementById('dialogueText').value.trim();
+    if (!text) { document.getElementById('dialoguePreview').classList.remove('active'); return; }
+
+    const lines = text.split('\n').filter(l => l.trim());
+    dialogueParsed = [];
+    const labelPattern = /^(\w+)\s*[:：]\s*(.+)/;
+    let hasLabels = false;
+    const detected = new Map();
+
+    for (const line of lines) {
+        const match = line.match(labelPattern);
+        if (match) {
+            hasLabels = true;
+            const label = match[1].trim();
+            const content = match[2].trim();
+            if (!detected.has(label)) detected.set(label, detected.size < 2 ? (detected.size === 0 ? 'A' : 'B') : 'B');
+            dialogueParsed.push({ speaker: detected.get(label), text: content, label });
+        } else {
+            dialogueParsed.push({ speaker: null, text: line.trim(), label: null });
+        }
+    }
+    if (!hasLabels) dialogueParsed.forEach((d, i) => { d.speaker = i % 2 === 0 ? 'A' : 'B'; });
+
+    const namesA = [...new Set(dialogueParsed.filter(d => d.speaker === 'A' && d.label).map(d => d.label))].join('/') || '说话人A';
+    const namesB = [...new Set(dialogueParsed.filter(d => d.speaker === 'B' && d.label).map(d => d.label))].join('/') || '说话人B';
+    document.getElementById('speakerAName').textContent = namesA;
+    document.getElementById('speakerBName').textContent = namesB;
+    document.getElementById('dialogueLineCount').textContent = dialogueParsed.length;
+    renderDialoguePreview();
+    document.getElementById('dialoguePreview').classList.add('active');
+}
+
+function renderDialoguePreview() {
+    const container = document.getElementById('dialogueLines');
+    const vaId = document.getElementById('voiceA').value;
+    const vbId = document.getElementById('voiceB').value;
+    const vaName = (serverVoices.find(v => v.id === vaId) || {}).name || vaId;
+    const vbName = (serverVoices.find(v => v.id === vbId) || {}).name || vbId;
+
+    container.innerHTML = dialogueParsed.map((d, i) => {
+        const cls = d.speaker === 'A' ? 'spk-a' : 'spk-b';
+        const tag = d.label || (d.speaker === 'A' ? 'A' : 'B');
+        const vname = d.speaker === 'A' ? vaName : vbName;
+        return `<div class="dialogue-line ${cls}" id="dline-${i}" onclick="speakDialogueLine(${i})">
+            <span class="dialogue-tag">${tag}</span>
+            <span class="dialogue-text">${d.text}</span>
+            <span style="font-size:0.7rem;color:var(--text-secondary)">🔊 ${vname}</span>
+            <button class="btn-outline btn-sm dialogue-btn" onclick="event.stopPropagation();speakDialogueLine(${i})">▶</button>
+        </div>`;
+    }).join('');
+}
+
+document.getElementById('dialogueText').addEventListener('input', parseDialogue);
+document.getElementById('voiceA').addEventListener('change', () => renderDialoguePreview());
+document.getElementById('voiceB').addEventListener('change', () => renderDialoguePreview());
+
+// ==================== LOCAL PLAYBACK (Web Speech API) ====================
+function getPlaybackRate() {
+    const pct = currentMode === 'single'
+        ? parseInt(document.getElementById('singleSpeed').value)
+        : parseInt(document.getElementById('dialogueSpeed').value);
+    return 1.0 + pct / 100;
+}
+
+function makeUtterance(text, serverVoiceId) {
+    const u = new SpeechSynthesisUtterance(text);
+    const bv = findBrowserVoice(serverVoiceId);
+    if (bv) {
+        u.voice = bv;
+        console.log('🎤 Using browser voice:', bv.name, 'for server ID:', serverVoiceId);
+    } else {
+        console.warn('⚠️ No browser voice match for:', serverVoiceId, 'using default');
+    }
+    u.rate = getPlaybackRate();
+    u.pitch = 1.0;
+    u.volume = 1.0;
+    return u;
+}
+
+function startSpeaking() {
+    synth.cancel(); isPaused = false; isSpeaking = true;
+    updateButtons('speaking');
+    if (currentMode === 'single') speakSingleLocal();
+    else { parseDialogue(); speakDialogueLocal(); }
+}
+
+// Single mode local playback
+let sParts = [], sIdx = 0, sVoiceId = '';
+function speakSingleLocal() {
+    const text = document.getElementById('singleText').value.trim();
+    if (!text) { showStatus('请先输入英语文本', 'error'); stopSpeaking(); return; }
+    sVoiceId = document.getElementById('singleVoice').value;
+    sParts = text.split('\n').filter(l => l.trim());
+    sIdx = 0;
+    showStatus('🔊 正在朗读...', 'info');
+    speakNextSinglePart();
+}
+function speakNextSinglePart() {
+    if (!isSpeaking || sIdx >= sParts.length) { finishSpeaking('✅ 朗读完成！'); return; }
+    currentUtterance = makeUtterance(sParts[sIdx], sVoiceId);
+    currentUtterance.onend = () => { sIdx++; setTimeout(speakNextSinglePart, 350); };
+    currentUtterance.onerror = (e) => {
+        if (e.error !== 'canceled' && e.error !== 'interrupted') showStatus('出错: ' + e.error, 'error');
+        finishSpeaking('');
+    };
+    synth.speak(currentUtterance);
+}
+
+// Dialogue mode local playback
+let dIdx = 0;
+function speakDialogueLocal() {
+    if (dialogueParsed.length === 0) { showStatus('请输入对话内容', 'error'); stopSpeaking(); return; }
+    dIdx = 0;
+    const va = document.getElementById('voiceA').value;
+    const vb = document.getElementById('voiceB').value;
+    console.log('💬 Dialogue voices - A:', va, 'B:', vb);
+    showStatus('💬 正在对话...', 'info');
+    speakNextDialoguePart(va, vb);
+}
+function speakNextDialoguePart(va, vb) {
+    if (!isSpeaking || dIdx >= dialogueParsed.length) {
+        document.querySelectorAll('.dialogue-line.speaking').forEach(el => el.classList.remove('speaking'));
+        finishSpeaking('✅ 对话朗读完成！'); return;
+    }
+    const item = dialogueParsed[dIdx];
+    const vId = item.speaker === 'A' ? va : vb;
+    console.log(`  Line ${dIdx}: speaker=${item.speaker}, voiceId=${vId}, text="${item.text.substring(0,30)}..."`);
+    document.querySelectorAll('.dialogue-line.speaking').forEach(el => el.classList.remove('speaking'));
+    const el = document.getElementById('dline-' + dIdx);
+    if (el) { el.classList.add('speaking'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    currentUtterance = makeUtterance(item.text, vId);
+    currentUtterance.onend = () => {
+        dIdx++;
+        const next = dialogueParsed[dIdx];
+        const pause = (next && next.speaker !== item.speaker) ? 500 : 300;
+        setTimeout(() => speakNextDialoguePart(va, vb), pause);
+    };
+    currentUtterance.onerror = (e) => {
+        if (e.error !== 'canceled' && e.error !== 'interrupted') showStatus('出错', 'error');
+        finishSpeaking('');
+    };
+    synth.speak(currentUtterance);
+}
+
+function speakDialogueLine(index) {
+    if (index < 0 || index >= dialogueParsed.length) return;
+    synth.cancel(); isSpeaking = true; updateButtons('speaking');
+    const item = dialogueParsed[index];
+    const vId = item.speaker === 'A' ? document.getElementById('voiceA').value : document.getElementById('voiceB').value;
+    document.querySelectorAll('.dialogue-line.speaking').forEach(el => el.classList.remove('speaking'));
+    const el = document.getElementById('dline-' + index);
+    if (el) el.classList.add('speaking');
+    currentUtterance = makeUtterance(item.text, vId);
+    currentUtterance.onend = () => {
+        document.querySelectorAll('.dialogue-line.speaking').forEach(e => e.classList.remove('speaking'));
+        finishSpeaking('✅ 朗读完成');
+    };
+    currentUtterance.onerror = () => finishSpeaking('');
+    synth.speak(currentUtterance);
+    showStatus('🔊 朗读第 ' + (index + 1) + ' 句', 'info');
+}
+
+// ==================== COMMON CONTROLS ====================
+function finishSpeaking(msg) { isSpeaking = false; updateButtons('idle'); if (msg) showStatus(msg, 'success'); }
+function stopSpeaking() {
+    synth.cancel(); isSpeaking = false; isPaused = false; currentUtterance = null;
+    document.querySelectorAll('.dialogue-line.speaking').forEach(el => el.classList.remove('speaking'));
+    updateButtons('idle'); showStatus('⏹ 已停止', 'info');
+}
+function togglePause() {
+    if (isPaused) { synth.resume(); isPaused = false; document.getElementById('pauseBtn').innerHTML = '⏯ 暂停'; showStatus('▶ 继续', 'info'); }
+    else { synth.pause(); isPaused = true; document.getElementById('pauseBtn').innerHTML = '▶ 继续'; showStatus('⏸ 已暂停', 'info'); }
+}
+function updateButtons(state) {
+    const speak = document.getElementById('speakBtn'), stop = document.getElementById('stopBtn'), pause = document.getElementById('pauseBtn');
+    if (state === 'speaking') { speak.disabled = true; stop.disabled = false; pause.disabled = false; pause.innerHTML = '⏯ 暂停'; }
+    else { speak.disabled = false; stop.disabled = true; pause.disabled = true; pause.innerHTML = '⏯ 暂停'; }
+}
+function showStatus(msg, type) {
+    const el = document.getElementById('status');
+    el.textContent = msg; el.className = 'status active ' + type;
+    if (type === 'success' || type === 'info') setTimeout(() => { if (el.textContent === msg) el.classList.remove('active'); }, 4000);
+}
+
+// ==================== MP3 DOWNLOAD (Server TTS) ====================
+async function downloadAudio() {
+    if (currentMode === 'single') await downloadSingle();
+    else await downloadDialogue();
+}
+
+async function downloadSingle() {
+    const text = document.getElementById('singleText').value.trim();
+    if (!text) { showStatus('请先输入英语文本', 'error'); return; }
+    const voice = document.getElementById('singleVoice').value;
+    if (!voice) { showStatus('语音尚未加载，请刷新页面', 'error'); return; }
+    const rate = parseInt(document.getElementById('singleSpeed').value);
+    const btn = document.getElementById('downloadBtn');
+    btn.disabled = true; showStatus('⏳ 正在生成 MP3...', 'loading');
+
+    try {
+        console.log('📥 DOWNLOAD START - voice:', voice, 'rate:', rate, 'text length:', text.length);
+        const res = await fetch('/api/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, voice, rate })
+        });
+        console.log('📥 Response status:', res.status);
+        const data = await res.json();
+        console.log('📥 Response data:', data);
+        if (data.success) {
+            lastAudioUrl = data.audioUrl;
+            const fullUrl = window.location.origin + data.audioUrl;
+            console.log('📥 Audio URL:', fullUrl);
+
+            // Show audio player
+            const audio = document.getElementById('audioElement');
+            audio.src = data.audioUrl;
+            document.getElementById('audioPlayer').classList.add('active');
+
+            // Method 1: Fetch blob and use Object URL (more reliable)
+            try {
+                const blobRes = await fetch(data.audioUrl);
+                const blob = await blobRes.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = `english_listening_${Date.now()}.mp3`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                console.log('📥 Download triggered via blob');
+            } catch (dlErr) {
+                console.warn('📥 Blob download failed, trying direct link:', dlErr);
+                // Fallback: open in new tab
+                window.open(data.audioUrl, '_blank');
+            }
+
+            showStatus('✅ MP3 下载成功！' + (data.cached ? ' (缓存)' : ''), 'success');
+        } else {
+            console.error('📥 Server error:', data.error);
+            showStatus('❌ ' + (data.error || '生成失败'), 'error');
+        }
+    } catch (err) {
+        console.error('📥 Download FAILED:', err.message, err);
+        showStatus('❌ 下载失败: ' + err.message, 'error');
+    } finally { btn.disabled = false; }
+}
+
+async function downloadDialogue() {
+    if (dialogueParsed.length === 0) { showStatus('请输入对话内容', 'error'); return; }
+    const voiceA = document.getElementById('voiceA').value;
+    const voiceB = document.getElementById('voiceB').value;
+    if (!voiceA || !voiceB) { showStatus('语音尚未加载，请刷新页面', 'error'); return; }
+    const rate = parseInt(document.getElementById('dialogueSpeed').value);
+    const btn = document.getElementById('downloadBtn');
+    btn.disabled = true; showStatus('⏳ 正在生成整段对话 MP3...', 'loading');
+    console.log('📥 DIALOGUE MERGED DOWNLOAD - A:', voiceA, 'B:', voiceB, 'lines:', dialogueParsed.length);
+
+    try {
+        // Build segments array for server
+        const segments = dialogueParsed.map(item => ({
+            text: item.text,
+            voice: item.speaker === 'A' ? voiceA : voiceB
+        }));
+
+        console.log('📥 Sending', segments.length, 'segments to server...');
+        const res = await fetch('/api/tts/dialogue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ segments, rate })
+        });
+        const data = await res.json();
+        console.log('📥 Server response:', data);
+
+        if (data.success) {
+            // Download single merged MP3 via blob
+            const blobRes = await fetch(data.audioUrl);
+            const blob = await blobRes.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = `dialogue_${Date.now()}.mp3`;
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+
+            // Also show audio player
+            lastAudioUrl = data.audioUrl;
+            const audio = document.getElementById('audioElement');
+            audio.src = data.audioUrl;
+            document.getElementById('audioPlayer').classList.add('active');
+
+            showStatus(`✅ 对话 MP3 下载成功！(${data.segmentCount}句合并)` + (data.cached ? ' (缓存)' : ''), 'success');
+        } else {
+            console.error('📥 Server error:', data.error);
+            showStatus('❌ ' + (data.error || '生成失败'), 'error');
+        }
+    } catch (err) {
+        console.error('📥 Dialogue download FAILED:', err.message, err);
+        showStatus('❌ 下载失败: ' + err.message, 'error');
+    } finally { btn.disabled = false; }
+}
+
+// ==================== KEYBOARD ====================
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); startSpeaking(); }
+    else if (e.key === 'Escape') { stopSpeaking(); }
+    else if (e.key === ' ' && !['TEXTAREA','INPUT'].includes(e.target.tagName)) {
+        e.preventDefault(); togglePause();
+    }
+});
+
+// ==================== TEMPLATES ====================
+function useTemplate(name) {
+    const all = {
+        greeting: ["Hello! How are you today?","I'm fine, thank you. And you?","I'm great! What did you do yesterday?","I went to the park with my family.","That sounds wonderful!","Yes, we had a great time."].join('\n'),
+        classroom: ["Good morning, class.","Good morning, teacher.","Please open your books to page twenty.","Today we are going to learn about animals.","Can anyone tell me what this is?","It's an elephant!","Very good! Now, please read after me."].join('\n'),
+        story: ["Once upon a time, there was a little rabbit.","The rabbit lived in a beautiful forest.","One day, the rabbit met a clever fox.",'The fox said, "Let\'s play a game."',"But the rabbit was very smart.",'She said, "No, thank you."',"And the rabbit hopped away safely.","The end."].join('\n'),
+        shopping: ["Woman: Good afternoon. Can I help you?","Man: Yes, I'm looking for a pair of shoes.","Woman: What size do you wear?","Man: I wear size forty-two.","Woman: These black ones are very popular.","Man: They look nice. How much are they?","Woman: They are fifty dollars.","Man: OK, I'll take them. Thank you!","Woman: You're welcome!"].join('\n'),
+        asking: ["Man: Excuse me, how do I get to the library?","Woman: Go straight ahead for two blocks.","Man: OK, two blocks straight.","Woman: Then turn left at the traffic lights.","Man: Turn left at the lights. Got it.","Woman: You'll see a big white building on your right.","Man: Thank you very much!","Woman: You're welcome!"].join('\n'),
+        interview: ["Teacher: Good morning! What's your name?","Student: My name is Li Hua.","Teacher: Where are you from?","Student: I'm from Beijing, China.","Teacher: What's your favorite subject?","Student: I like English very much.","Teacher: Why do you like English?","Student: Because I want to travel around the world.","Teacher: That's great! Keep studying hard.","Student: Thank you, teacher!"].join('\n'),
+        restaurant: ["Waiter: Good evening. A table for two?","Customer: Yes, please. By the window?","Waiter: Sure, right this way. Here is the menu.","Customer: What do you recommend?","Waiter: The grilled fish is very popular.","Customer: I'll have the fish, please.","Waiter: Excellent choice. And to drink?","Customer: Just water, please.","Waiter: I'll be right back with your order."].join('\n')
+    };
+    if (currentMode === 'single') {
+        document.getElementById('singleText').value = all[name] || '';
+    } else {
+        document.getElementById('dialogueText').value = all[name] || '';
+        parseDialogue();
+    }
+}
+
+function renderTemplateTags() {
+    document.getElementById('singleTemplates').innerHTML = [
+        ['greeting','👋 问候对话'],['classroom','🏫 课堂用语'],['story','📖 小故事']
+    ].map(([id,label]) => `<span class="template-tag" onclick="useTemplate('${id}')">${label}</span>`).join('');
+    document.getElementById('dialogueTemplates').innerHTML = [
+        ['shopping','🛒 购物对话'],['asking','🗺️ 问路指路'],['interview','🎓 师生访谈'],['restaurant','🍽️ 餐厅点餐']
+    ].map(([id,label]) => `<span class="template-tag" onclick="useTemplate('${id}')">${label}</span>`).join('');
+}
+
+window.addEventListener('DOMContentLoaded', renderTemplateTags);
+</script>
+</body>
+</html>

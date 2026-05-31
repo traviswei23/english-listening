@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(pip3 list *)",
+      "Bash(pip list *)",
+      "Bash(python -m venv venv)",
+      "Bash(venv\\\\Scripts\\\\python.exe -m pip install fastapi \"uvicorn[standard]\" edge-tts)",
+      "Bash(dir)",
+      "Bash(where python *)",
+      "Bash(python -m pip --version)",
+      "Bash(py --version)",
+      "Bash(ls \"C:/Users/YinzhanWang/AppData/Local/Microsoft/WindowsApps/\" 2>/dev/null | grep -i python || echo \"checking other paths\")",
+      "Read(//usr/**)",
+      "Read(//usr/local/**)",
+      "Bash(pip install *)",
+      "Bash(python -m pip install fastapi uvicorn edge-tts)",
+      "Bash(python -c \"import edge_tts; print\\('edge-tts OK'\\)\")",
+      "Bash(where python3 *)",
+      "Bash(npm install *)",
+      "Bash(timeout 10 node server.js)",
+      "Bash(npm uninstall *)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}
