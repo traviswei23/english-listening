@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/Free-100%25-success" alt="Free">
 </p>
 
-# 🎧 English Listening TTS Generator
+# 🎧 英语文字转听力 · English Listening TTS
 
 > 专为中国英语听力教学设计的文字转语音工具 — 生成带教师级音色的听力音频 MP3
 
